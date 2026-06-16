@@ -7,7 +7,7 @@ export const Root: React.FC = () => {
     <Composition
       id="NiriNotchShowcase"
       component={NiriNotchShowcase}
-      durationInFrames={510}
+      durationInFrames={360}
       fps={30}
       width={1920}
       height={1080}

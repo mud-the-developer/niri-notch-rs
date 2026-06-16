@@ -11,58 +11,277 @@ import {
   useVideoConfig,
 } from 'remotion';
 
-type ShotProps = {
-  src: string;
-  caption: string;
-  kicker: string;
-  start: number;
-  duration: number;
-  scale?: number;
-  x?: number;
-  y?: number;
-  imageZoom?: number;
-  imageOrigin?: string;
-  imageYOffset?: number;
-};
-
 const emerald = '#35f0b4';
 const cyan = '#5bdcff';
-const bg = '#03080d';
+const violet = '#8d7dff';
+const ink = '#03070b';
 
-const scanlines = {
-  backgroundImage:
-    'linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)',
-  backgroundSize: '100% 6px',
-  mixBlendMode: 'screen' as const,
-  opacity: 0.32,
-};
+const clamp = (value: number) => Math.max(0, Math.min(1, value));
+
+const fade = (frame: number, start: number, end: number) =>
+  interpolate(frame, [start, end], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+
+const softExit = (frame: number, start: number, end: number) =>
+  interpolate(frame, [start, end], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.in(Easing.cubic),
+  });
 
 const Backdrop: React.FC = () => {
   const frame = useCurrentFrame();
-  const drift = interpolate(frame, [0, 510], [0, 90]);
+  const drift = interpolate(frame, [0, 360], [0, 1]);
+  const pulse = 0.72 + Math.sin(frame / 22) * 0.08;
+
   return (
-    <AbsoluteFill style={{backgroundColor: bg, overflow: 'hidden'}}>
+    <AbsoluteFill style={{backgroundColor: ink, overflow: 'hidden'}}>
       <div
         style={{
           position: 'absolute',
-          inset: -240,
+          inset: -180,
           background:
-            `radial-gradient(circle at ${20 + drift / 8}% 20%, rgba(53,240,180,.28), transparent 30%),` +
-            `radial-gradient(circle at ${80 - drift / 12}% 72%, rgba(91,220,255,.22), transparent 34%),` +
-            'linear-gradient(135deg, rgba(8,24,30,1), rgba(1,5,10,1))',
-          filter: 'blur(4px)',
+            `radial-gradient(circle at ${52 + drift * 6}% ${82 - drift * 10}%, rgba(53,240,180,${0.22 * pulse}), transparent 30%),` +
+            `radial-gradient(circle at ${64 - drift * 10}% ${72 + drift * 2}%, rgba(91,220,255,${0.18 * pulse}), transparent 34%),` +
+            'linear-gradient(135deg, #05090f 0%, #020409 52%, #061014 100%)',
+          filter: 'blur(2px)',
         }}
       />
-      <div style={{position: 'absolute', inset: 0, ...scanlines}} />
       <div
         style={{
           position: 'absolute',
-          inset: 52,
-          border: '1px solid rgba(91,220,255,.16)',
-          borderRadius: 34,
-          boxShadow: '0 0 70px rgba(53,240,180,.08) inset',
+          left: 180,
+          right: 180,
+          bottom: 128,
+          height: 230,
+          transform: `translateX(${Math.sin(frame / 70) * 22}px) rotate(-10deg)`,
+          opacity: 0.82,
+          background:
+            'linear-gradient(100deg, transparent 4%, rgba(53,240,180,.02) 16%, rgba(91,220,255,.54) 38%, rgba(141,125,255,.34) 62%, transparent 78%)',
+          clipPath: 'polygon(8% 70%, 74% 34%, 97% 37%, 32% 77%)',
+          filter: 'blur(.2px) drop-shadow(0 0 42px rgba(91,220,255,.36))',
         }}
       />
+      <div
+        style={{
+          position: 'absolute',
+          left: 432,
+          right: 432,
+          bottom: 170,
+          height: 2,
+          transform: 'rotate(-10deg)',
+          background: `linear-gradient(90deg, transparent, ${emerald}, ${cyan}, transparent)`,
+          boxShadow: `0 0 32px ${cyan}`,
+          opacity: 0.72,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,.032) 1px, transparent 1px), linear-gradient(90deg, rgba(91,220,255,.026) 1px, transparent 1px)',
+          backgroundSize: '100% 7px, 72px 100%',
+          opacity: 0.24,
+          mixBlendMode: 'screen',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 34,
+          borderRadius: 34,
+          border: '1px solid rgba(91,220,255,.12)',
+          boxShadow: '0 0 90px rgba(53,240,180,.06) inset',
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+const GlassLabel: React.FC<{
+  kicker: string;
+  title: string;
+  from: number;
+  until?: number;
+  x?: number;
+  y?: number;
+}> = ({kicker, title, from, until = 360, x = 92, y = 72}) => {
+  const frame = useCurrentFrame();
+  const enter = fade(frame, from, from + 22);
+  const exit = softExit(frame, until - 22, until);
+  const opacity = enter * exit;
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        opacity,
+        transform: `translateY(${(1 - enter) * -20}px)`,
+        padding: '18px 24px 20px',
+        borderRadius: 24,
+        background: 'linear-gradient(135deg, rgba(0,12,16,.88), rgba(4,24,31,.58))',
+        border: '1px solid rgba(91,220,255,.22)',
+        boxShadow: '0 18px 70px rgba(0,0,0,.46), 0 0 38px rgba(53,240,180,.14)',
+        backdropFilter: 'blur(18px)',
+      }}
+    >
+      <div
+        style={{
+          color: emerald,
+          fontSize: 18,
+          fontWeight: 900,
+          letterSpacing: 8,
+          textTransform: 'uppercase',
+        }}
+      >
+        {kicker}
+      </div>
+      <div
+        style={{
+          marginTop: 7,
+          color: 'white',
+          fontSize: 42,
+          lineHeight: 1.02,
+          fontWeight: 950,
+          letterSpacing: -1.8,
+          textShadow: '0 0 34px rgba(91,220,255,.22)',
+        }}
+      >
+        {title}
+      </div>
+    </div>
+  );
+};
+
+const NotchStage: React.FC = () => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const intro = spring({frame: frame - 18, fps, config: {damping: 20, stiffness: 90}});
+  const macro = fade(frame, 112, 170);
+  const notify = fade(frame, 205, 245);
+  const settle = fade(frame, 296, 336);
+  const topFocus = interpolate(frame, [0, 160, 260, 360], [70, 112, 118, 90], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const zoom = interpolate(frame, [0, 85, 155, 230, 330], [1.12, 1.34, 2.18, 2.32, 1.54], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.inOut(Easing.cubic),
+  });
+  const panX = interpolate(frame, [0, 160, 250, 360], [0, -8, 12, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const image = frame < 185 ? 'notch-compact.png' : frame < 282 ? 'notch-notification.png' : 'notch-open.png';
+
+  return (
+    <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
+      <div
+        style={{
+          position: 'absolute',
+          width: 1390,
+          height: 782,
+          borderRadius: 38,
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,.18)',
+          background: 'rgba(255,255,255,.035)',
+          boxShadow:
+            '0 42px 180px rgba(0,0,0,.72), 0 0 120px rgba(53,240,180,.14)',
+          transform: `translate(${panX}px, ${(1 - intro) * 90 + 18}px) scale(${0.94 + clamp(intro) * 0.06})`,
+          opacity: clamp(intro),
+        }}
+      >
+        <Img
+          src={staticFile(`assets/${image}`)}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: `scale(${zoom}) translateY(${topFocus}px)`,
+            transformOrigin: '50% 0%',
+            filter: 'saturate(1.12) contrast(1.06) brightness(.94)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 50% 0%, transparent 0%, transparent 42%, rgba(0,0,0,.20) 100%)',
+          }}
+        />
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          top: 154,
+          left: '50%',
+          height: 1,
+          width: interpolate(frame, [118, 174], [0, 760], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          }),
+          transform: 'translateX(-50%)',
+          background: `linear-gradient(90deg, transparent, ${emerald}, ${cyan}, transparent)`,
+          opacity: macro * softExit(frame, 255, 300),
+          boxShadow: `0 0 26px ${cyan}`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          right: 116,
+          top: 92,
+          display: 'flex',
+          gap: 10,
+          opacity: notify * softExit(frame, 300, 340),
+          transform: `translateX(${(1 - notify) * 18}px)`,
+        }}
+      >
+        {['workspace', 'mako', 'media'].map((tag, index) => (
+          <span
+            key={tag}
+            style={{
+              color: index === 1 ? '#041014' : 'rgba(255,255,255,.88)',
+              background:
+                index === 1
+                  ? `linear-gradient(135deg, ${emerald}, ${cyan})`
+                  : 'rgba(255,255,255,.08)',
+              border: '1px solid rgba(255,255,255,.16)',
+              borderRadius: 999,
+              padding: '10px 15px',
+              fontSize: 18,
+              fontWeight: 900,
+              letterSpacing: -0.4,
+              boxShadow: index === 1 ? '0 0 34px rgba(53,240,180,.26)' : undefined,
+            }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: 132,
+          bottom: 118,
+          opacity: settle,
+          color: 'rgba(255,255,255,.62)',
+          fontSize: 24,
+          fontWeight: 700,
+          letterSpacing: -0.4,
+        }}
+      >
+        GTK3 layer-shell overlay · Niri IPC · narrow testable effects
+      </div>
     </AbsoluteFill>
   );
 };
@@ -70,64 +289,52 @@ const Backdrop: React.FC = () => {
 const Title: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const pop = spring({frame, fps, config: {damping: 18, stiffness: 90}});
-  const glow = interpolate(frame, [0, 50, 100], [0.4, 1, 0.72], {
-    extrapolateRight: 'clamp',
-  });
+  const pop = spring({frame, fps, config: {damping: 18, stiffness: 82}});
+  const exit = softExit(frame, 86, 118);
+
   return (
-    <Sequence durationInFrames={120}>
+    <Sequence from={0} durationInFrames={128}>
       <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
         <div
           style={{
-            transform: `scale(${0.88 + pop * 0.12})`,
+            opacity: clamp(pop) * exit,
+            transform: `translateY(${(1 - clamp(pop)) * 34}px) scale(${0.9 + clamp(pop) * 0.1})`,
             textAlign: 'center',
-            letterSpacing: -4,
           }}
         >
           <div
             style={{
-              color: 'rgba(255,255,255,.72)',
-              fontSize: 34,
-              letterSpacing: 10,
+              color: emerald,
+              fontSize: 23,
+              fontWeight: 900,
+              letterSpacing: 13,
               textTransform: 'uppercase',
               marginBottom: 18,
             }}
           >
-            Niri companion daemon
+            Niri companion notch
           </div>
           <div
             style={{
               color: 'white',
-              fontSize: 128,
-              fontWeight: 900,
-              textShadow: `0 0 ${50 * glow}px rgba(53,240,180,.58)`,
+              fontSize: 106,
+              fontWeight: 950,
+              letterSpacing: -6,
+              textShadow: '0 0 60px rgba(53,240,180,.42)',
             }}
           >
             niri-notch-rs
           </div>
           <div
             style={{
-              marginTop: 28,
-              display: 'inline-flex',
-              gap: 16,
-              color: '#031014',
+              marginTop: 22,
+              color: 'rgba(255,255,255,.62)',
               fontSize: 30,
-              fontWeight: 800,
+              fontWeight: 700,
+              letterSpacing: -0.8,
             }}
           >
-            {['GTK3', 'layer-shell', 'Waybar rails', 'Remotion'].map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  background: `linear-gradient(135deg, ${emerald}, ${cyan})`,
-                  borderRadius: 999,
-                  padding: '12px 22px',
-                  boxShadow: '0 12px 50px rgba(53,240,180,.24)',
-                }}
-              >
-                {tag}
-              </span>
-            ))}
+            a tiny layer-shell island that feels native
           </div>
         </div>
       </AbsoluteFill>
@@ -135,151 +342,41 @@ const Title: React.FC = () => {
   );
 };
 
-const FramedShot: React.FC<ShotProps> = ({
-  src,
-  caption,
-  kicker,
-  start,
-  duration,
-  scale = 1,
-  x = 0,
-  y = 0,
-  imageZoom = 1.035,
-  imageOrigin = '50% 50%',
-  imageYOffset = 0,
-}) => {
+const EndCard: React.FC = () => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const local = frame - start;
-  const enter = spring({frame: local, fps, config: {damping: 22, stiffness: 110}});
-  const exit = interpolate(local, [duration - 35, duration], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-    easing: Easing.in(Easing.cubic),
-  });
-  const progress = Math.max(0, Math.min(1, enter)) * exit;
-  const pan = interpolate(local, [0, duration], [-16, 16], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-
+  const enter = fade(frame, 318, 350);
   return (
-    <Sequence from={start} durationInFrames={duration}>
-      <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-        <div
-          style={{
-            width: 1450,
-            height: 815,
-            borderRadius: 38,
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,.2)',
-            background: 'rgba(255,255,255,.05)',
-            boxShadow:
-              '0 45px 160px rgba(0,0,0,.62), 0 0 80px rgba(53,240,180,.16)',
-            transform: `translate(${x}px, ${y + (1 - progress) * 90}px) scale(${(0.92 + progress * 0.08) * scale})`,
-            opacity: progress,
-          }}
-        >
-          <Img
-            src={staticFile(`assets/${src}`)}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transform: `scale(${imageZoom}) translateY(${pan + imageYOffset}px)`,
-              transformOrigin: imageOrigin,
-              filter: 'saturate(1.08) contrast(1.04)',
-            }}
-          />
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            left: 150,
-            top: 92,
-            opacity: progress,
-            transform: `translateY(${(1 - progress) * -24}px)`,
-            padding: '22px 28px',
-            borderRadius: 26,
-            background: 'linear-gradient(135deg, rgba(0,12,16,.86), rgba(2,22,26,.62))',
-            border: '1px solid rgba(91,220,255,.22)',
-            boxShadow: '0 24px 80px rgba(0,0,0,.46), 0 0 36px rgba(53,240,180,.14)',
-            backdropFilter: 'blur(14px)',
-          }}
-        >
-          <div
-            style={{
-              color: emerald,
-              fontSize: 24,
-              fontWeight: 900,
-              letterSpacing: 7,
-              textTransform: 'uppercase',
-            }}
-          >
-            {kicker}
-          </div>
-          <div
-            style={{
-              marginTop: 8,
-              color: 'white',
-              fontSize: 48,
-              fontWeight: 900,
-              letterSpacing: -2,
-              textShadow: '0 0 32px rgba(91,220,255,.24)',
-            }}
-          >
-            {caption}
-          </div>
-        </div>
-      </AbsoluteFill>
-    </Sequence>
-  );
-};
-
-const CodeCard: React.FC = () => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const pop = spring({frame: frame - 390, fps, config: {damping: 20, stiffness: 100}});
-  const lines = [
-    'cargo test --locked',
-    'cargo clippy --locked --all-targets --all-features -- -D warnings',
-    'niri-notch-rs doctor --json',
-    'niri-notch-rs install --user',
-  ];
-  return (
-    <Sequence from={390} durationInFrames={120}>
-      <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-        <div
-          style={{
-            width: 1320,
-            borderRadius: 32,
-            padding: 44,
-            background: 'rgba(0,12,16,.78)',
-            border: '1px solid rgba(91,220,255,.22)',
-            boxShadow: '0 34px 120px rgba(0,0,0,.66)',
-            transform: `translateY(${(1 - pop) * 80}px) scale(${0.95 + pop * 0.05})`,
-            opacity: pop,
-          }}
-        >
-          <div style={{color: emerald, fontSize: 30, fontWeight: 900}}>
-            OSS-grade, not screenshotware
-          </div>
-          <div style={{marginTop: 26, fontFamily: 'monospace', fontSize: 34}}>
-            {lines.map((line, index) => (
-              <div
-                key={line}
-                style={{
-                  color: index === 2 ? cyan : 'rgba(255,255,255,.86)',
-                  marginTop: 18,
-                }}
-              >
-                <span style={{color: emerald}}>$</span> {line}
-              </div>
-            ))}
-          </div>
-        </div>
-      </AbsoluteFill>
-    </Sequence>
+    <div
+      style={{
+        position: 'absolute',
+        right: 90,
+        bottom: 72,
+        opacity: enter,
+        transform: `translateY(${(1 - enter) * 24}px)`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '16px 20px',
+        borderRadius: 999,
+        background: 'rgba(0,12,16,.70)',
+        border: '1px solid rgba(91,220,255,.20)',
+        boxShadow: '0 20px 70px rgba(0,0,0,.44)',
+        backdropFilter: 'blur(14px)',
+      }}
+    >
+      <span
+        style={{
+          width: 12,
+          height: 12,
+          borderRadius: 999,
+          background: `linear-gradient(135deg, ${emerald}, ${cyan})`,
+          boxShadow: `0 0 26px ${emerald}`,
+        }}
+      />
+      <span style={{color: 'white', fontWeight: 900, fontSize: 22}}>built in Rust</span>
+      <span style={{color: 'rgba(255,255,255,.38)', fontWeight: 800, fontSize: 22}}>·</span>
+      <span style={{color: cyan, fontWeight: 900, fontSize: 22}}>scripted with Remotion</span>
+    </div>
   );
 };
 
@@ -287,46 +384,11 @@ export const NiriNotchShowcase: React.FC = () => {
   return (
     <AbsoluteFill>
       <Backdrop />
+      <NotchStage />
       <Title />
-      <FramedShot
-        src="github-remotion.png"
-        kicker="built with remotion"
-        caption="Programmatic video pipeline"
-        start={95}
-        duration={115}
-        scale={0.96}
-      />
-      <FramedShot
-        src="github-niri-notch-rs.png"
-        kicker="public rust repo"
-        caption="CI, docs, Dependabot, packaging"
-        start={180}
-        duration={120}
-        scale={0.96}
-      />
-      <FramedShot
-        src="notch-open.png"
-        kicker="real niri desktop capture"
-        caption="Layer-shell notch, Waybar as rails"
-        start={270}
-        duration={115}
-        scale={1.04}
-        imageZoom={1.42}
-        imageOrigin="50% 0%"
-        imageYOffset={4}
-      />
-      <FramedShot
-        src="notch-notification.png"
-        kicker="notification moment"
-        caption="mako + media + workspace context"
-        start={335}
-        duration={110}
-        scale={1.04}
-        imageZoom={1.48}
-        imageOrigin="50% 0%"
-        imageYOffset={4}
-      />
-      <CodeCard />
+      <GlassLabel kicker="real desktop capture" title="small surface, crisp motion" from={118} until={206} />
+      <GlassLabel kicker="notification moment" title="context without clutter" from={214} until={306} />
+      <EndCard />
     </AbsoluteFill>
   );
 };

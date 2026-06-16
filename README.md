@@ -14,7 +14,7 @@ Animated Dynamic Island-style companion notch for the [Niri](https://github.com/
 </p>
 
 <p align="center">
-  <a href="docs/assets/niri-notch-rs-showcase.mp4">Open the 17s Remotion MP4 showcase</a>
+  <a href="docs/assets/niri-notch-rs-showcase.mp4">Open the 12s Remotion MP4 showcase</a>
 </p>
 
 `niri-notch-rs` is a **companion daemon**, not an in-process compositor plugin. It owns a GTK3 + `gtk-layer-shell` overlay surface and integrates with Niri, Waybar, mako, and playerctl through narrow, testable effect boundaries.
