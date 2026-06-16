@@ -7,10 +7,20 @@
 
 Animated Dynamic Island-style companion notch for the [Niri](https://github.com/YaLTeR/niri) Wayland compositor.
 
-[![Watch the niri-notch-rs showcase video](docs/assets/niri-notch-rs-showcase-poster.png)](docs/assets/niri-notch-rs-showcase.mp4)
+<div align="center">
+  <video
+    src="https://raw.githubusercontent.com/mud-the-developer/niri-notch-rs/main/docs/assets/niri-notch-rs-showcase.mp4"
+    width="100%"
+    controls
+    autoplay
+    muted
+    loop
+    playsinline
+  ></video>
+</div>
 
 <p align="center">
-  <a href="docs/assets/niri-notch-rs-showcase.mp4">Watch the 17s showcase video</a>
+  <a href="docs/assets/niri-notch-rs-showcase.mp4">Download the 17s showcase video</a>
 </p>
 
 `niri-notch-rs` is a **companion daemon**, not an in-process compositor plugin. It owns a GTK3 + `gtk-layer-shell` overlay surface and integrates with Niri, Waybar, mako, and playerctl through narrow, testable effect boundaries.

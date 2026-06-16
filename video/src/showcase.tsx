@@ -20,6 +20,9 @@ type ShotProps = {
   scale?: number;
   x?: number;
   y?: number;
+  imageZoom?: number;
+  imageOrigin?: string;
+  imageYOffset?: number;
 };
 
 const emerald = '#35f0b4';
@@ -141,6 +144,9 @@ const FramedShot: React.FC<ShotProps> = ({
   scale = 1,
   x = 0,
   y = 0,
+  imageZoom = 1.035,
+  imageOrigin = '50% 50%',
+  imageYOffset = 0,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -180,7 +186,8 @@ const FramedShot: React.FC<ShotProps> = ({
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transform: `scale(1.035) translateY(${pan}px)`,
+              transform: `scale(${imageZoom}) translateY(${pan + imageYOffset}px)`,
+              transformOrigin: imageOrigin,
               filter: 'saturate(1.08) contrast(1.04)',
             }}
           />
@@ -303,6 +310,10 @@ export const NiriNotchShowcase: React.FC = () => {
         caption="Layer-shell notch, Waybar as rails"
         start={270}
         duration={115}
+        scale={1.04}
+        imageZoom={1.42}
+        imageOrigin="50% 0%"
+        imageYOffset={4}
       />
       <FramedShot
         src="notch-notification.png"
@@ -310,7 +321,10 @@ export const NiriNotchShowcase: React.FC = () => {
         caption="mako + media + workspace context"
         start={335}
         duration={110}
-        scale={1.02}
+        scale={1.04}
+        imageZoom={1.48}
+        imageOrigin="50% 0%"
+        imageYOffset={4}
       />
       <CodeCard />
     </AbsoluteFill>
