@@ -127,6 +127,26 @@ Niri config text + InstallPlan
 
 This keeps desktop behavior testable without GTK, Niri, mako, playerctl, or a live Wayland session.
 
+## Video
+
+A Remotion showcase video lives in:
+
+```text
+video/
+```
+
+Render it with:
+
+```bash
+cd video
+npm install --include=dev
+npm run typecheck
+npm run still
+npm run render
+```
+
+The composition uses real GitHub and Niri desktop screenshots from the project smoke-test pass.
+
 ## Packaging
 
 An Arch packaging draft lives in:

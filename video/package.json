@@ -1,0 +1,27 @@
+{
+  "name": "niri-notch-rs-video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Remotion promo video for niri-notch-rs",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "preview": "remotion preview src/index.ts",
+    "render": "remotion render src/index.ts NiriNotchShowcase dist/niri-notch-rs-showcase.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p",
+    "still": "remotion still src/index.ts NiriNotchShowcase dist/poster.png --frame=300"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.478",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.478",
+    "typescript": "5.8.3"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1"
+  },
+  "overrides": {
+    "ws": "8.21.0"
+  }
+}
