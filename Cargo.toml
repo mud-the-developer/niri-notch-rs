@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1"
-glib = "0.18"
+glib = "0.22"
 gtk = { version = "0.18", package = "gtk", features = ["v3_24"] }
 gdk = "0.18"
 gtk-layer-shell = "0.8.2"
