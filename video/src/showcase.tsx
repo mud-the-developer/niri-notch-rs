@@ -102,80 +102,20 @@ const Backdrop: React.FC = () => {
   );
 };
 
-const GlassLabel: React.FC<{
-  kicker: string;
-  title: string;
-  from: number;
-  until?: number;
-  x?: number;
-  y?: number;
-}> = ({kicker, title, from, until = 360, x = 92, y = 72}) => {
-  const frame = useCurrentFrame();
-  const enter = fade(frame, from, from + 22);
-  const exit = softExit(frame, until - 22, until);
-  const opacity = enter * exit;
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        opacity,
-        transform: `translateY(${(1 - enter) * -20}px)`,
-        padding: '18px 24px 20px',
-        borderRadius: 24,
-        background: 'linear-gradient(135deg, rgba(0,12,16,.88), rgba(4,24,31,.58))',
-        border: '1px solid rgba(91,220,255,.22)',
-        boxShadow: '0 18px 70px rgba(0,0,0,.46), 0 0 38px rgba(53,240,180,.14)',
-        backdropFilter: 'blur(18px)',
-      }}
-    >
-      <div
-        style={{
-          color: emerald,
-          fontSize: 18,
-          fontWeight: 900,
-          letterSpacing: 8,
-          textTransform: 'uppercase',
-        }}
-      >
-        {kicker}
-      </div>
-      <div
-        style={{
-          marginTop: 7,
-          color: 'white',
-          fontSize: 42,
-          lineHeight: 1.02,
-          fontWeight: 950,
-          letterSpacing: -1.8,
-          textShadow: '0 0 34px rgba(91,220,255,.22)',
-        }}
-      >
-        {title}
-      </div>
-    </div>
-  );
-};
-
 const NotchStage: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const intro = spring({frame: frame - 18, fps, config: {damping: 20, stiffness: 90}});
-  const macro = fade(frame, 112, 170);
-  const notify = fade(frame, 205, 245);
-  const settle = fade(frame, 296, 336);
-  const topFocus = interpolate(frame, [0, 160, 260, 360], [70, 112, 118, 90], {
+  const topFocus = interpolate(frame, [0, 160, 260, 360], [86, 128, 132, 104], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const zoom = interpolate(frame, [0, 85, 155, 230, 330], [1.12, 1.34, 2.18, 2.32, 1.54], {
+  const zoom = interpolate(frame, [0, 85, 155, 230, 330], [1.25, 1.62, 2.34, 2.42, 1.74], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: Easing.inOut(Easing.cubic),
   });
-  const panX = interpolate(frame, [0, 160, 250, 360], [0, -8, 12, 0], {
+  const panX = interpolate(frame, [0, 160, 250, 360], [0, 0, 4, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -187,14 +127,14 @@ const NotchStage: React.FC = () => {
       <div
         style={{
           position: 'absolute',
-          width: 1390,
-          height: 782,
+          width: 1540,
+          height: 866,
           borderRadius: 38,
           overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,.18)',
+          border: '1px solid rgba(255,255,255,.14)',
           background: 'rgba(255,255,255,.035)',
           boxShadow:
-            '0 42px 180px rgba(0,0,0,.72), 0 0 120px rgba(53,240,180,.14)',
+            '0 42px 180px rgba(0,0,0,.72), 0 0 96px rgba(53,240,180,.11)',
           transform: `translate(${panX}px, ${(1 - intro) * 90 + 18}px) scale(${0.94 + clamp(intro) * 0.06})`,
           opacity: clamp(intro),
         }}
@@ -215,72 +155,9 @@ const NotchStage: React.FC = () => {
             position: 'absolute',
             inset: 0,
             background:
-              'radial-gradient(circle at 50% 0%, transparent 0%, transparent 42%, rgba(0,0,0,.20) 100%)',
+              'linear-gradient(90deg, rgba(0,0,0,.08) 0%, transparent 18%, transparent 72%, rgba(0,0,0,.58) 100%), radial-gradient(circle at 50% 0%, transparent 0%, transparent 44%, rgba(0,0,0,.18) 100%)',
           }}
         />
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          top: 154,
-          left: '50%',
-          height: 1,
-          width: interpolate(frame, [118, 174], [0, 760], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          }),
-          transform: 'translateX(-50%)',
-          background: `linear-gradient(90deg, transparent, ${emerald}, ${cyan}, transparent)`,
-          opacity: macro * softExit(frame, 255, 300),
-          boxShadow: `0 0 26px ${cyan}`,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          right: 116,
-          top: 92,
-          display: 'flex',
-          gap: 10,
-          opacity: notify * softExit(frame, 300, 340),
-          transform: `translateX(${(1 - notify) * 18}px)`,
-        }}
-      >
-        {['workspace', 'mako', 'media'].map((tag, index) => (
-          <span
-            key={tag}
-            style={{
-              color: index === 1 ? '#041014' : 'rgba(255,255,255,.88)',
-              background:
-                index === 1
-                  ? `linear-gradient(135deg, ${emerald}, ${cyan})`
-                  : 'rgba(255,255,255,.08)',
-              border: '1px solid rgba(255,255,255,.16)',
-              borderRadius: 999,
-              padding: '10px 15px',
-              fontSize: 18,
-              fontWeight: 900,
-              letterSpacing: -0.4,
-              boxShadow: index === 1 ? '0 0 34px rgba(53,240,180,.26)' : undefined,
-            }}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          left: 132,
-          bottom: 118,
-          opacity: settle,
-          color: 'rgba(255,255,255,.62)',
-          fontSize: 24,
-          fontWeight: 700,
-          letterSpacing: -0.4,
-        }}
-      >
-        GTK3 layer-shell overlay · Niri IPC · narrow testable effects
       </div>
     </AbsoluteFill>
   );
@@ -342,53 +219,12 @@ const Title: React.FC = () => {
   );
 };
 
-const EndCard: React.FC = () => {
-  const frame = useCurrentFrame();
-  const enter = fade(frame, 318, 350);
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        right: 90,
-        bottom: 72,
-        opacity: enter,
-        transform: `translateY(${(1 - enter) * 24}px)`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        padding: '16px 20px',
-        borderRadius: 999,
-        background: 'rgba(0,12,16,.70)',
-        border: '1px solid rgba(91,220,255,.20)',
-        boxShadow: '0 20px 70px rgba(0,0,0,.44)',
-        backdropFilter: 'blur(14px)',
-      }}
-    >
-      <span
-        style={{
-          width: 12,
-          height: 12,
-          borderRadius: 999,
-          background: `linear-gradient(135deg, ${emerald}, ${cyan})`,
-          boxShadow: `0 0 26px ${emerald}`,
-        }}
-      />
-      <span style={{color: 'white', fontWeight: 900, fontSize: 22}}>built in Rust</span>
-      <span style={{color: 'rgba(255,255,255,.38)', fontWeight: 800, fontSize: 22}}>·</span>
-      <span style={{color: cyan, fontWeight: 900, fontSize: 22}}>scripted with Remotion</span>
-    </div>
-  );
-};
-
 export const NiriNotchShowcase: React.FC = () => {
   return (
     <AbsoluteFill>
       <Backdrop />
       <NotchStage />
       <Title />
-      <GlassLabel kicker="real desktop capture" title="small surface, crisp motion" from={118} until={206} />
-      <GlassLabel kicker="notification moment" title="context without clutter" from={214} until={306} />
-      <EndCard />
     </AbsoluteFill>
   );
 };
