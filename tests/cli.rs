@@ -4,7 +4,14 @@ use niri_notch_rs::cli::{CliCommand, CliError, doctor_probe_names, parse_cli};
 fn parse_doctor_command() {
     let command = parse_cli(["niri-notch-rs", "doctor"]);
 
-    assert_eq!(command, Ok(Some(CliCommand::Doctor)));
+    assert_eq!(command, Ok(Some(CliCommand::Doctor { json: false })));
+}
+
+#[test]
+fn parse_doctor_json_command() {
+    let command = parse_cli(["niri-notch-rs", "doctor", "--json"]);
+
+    assert_eq!(command, Ok(Some(CliCommand::Doctor { json: true })));
 }
 
 #[test]

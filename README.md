@@ -1,40 +1,48 @@
 # niri-notch-rs
 
+[![CI](https://github.com/mud-the-developer/niri-notch-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/mud-the-developer/niri-notch-rs/actions/workflows/ci.yml)
+![License](https://img.shields.io/github/license/mud-the-developer/niri-notch-rs)
+![Rust](https://img.shields.io/badge/rust-stable-orange)
+![Wayland](https://img.shields.io/badge/wayland-niri%20companion-46c2ff)
+
 Animated Dynamic Island-style companion notch for the [Niri](https://github.com/YaLTeR/niri) Wayland compositor.
 
-This is packaged as a **Niri companion daemon**, not an in-process compositor plugin. It runs a GTK3 + `gtk-layer-shell` overlay surface and integrates with Niri, Waybar, mako, and playerctl.
+`niri-notch-rs` is a **companion daemon**, not an in-process compositor plugin. It owns a GTK3 + `gtk-layer-shell` overlay surface and integrates with Niri, Waybar, mako, and playerctl through narrow, testable effect boundaries.
 
-## Current features
+## Features
 
-- Top-center animated layer-shell notch
-- Compact and expanded states with damped spring sizing
-- Niri workspace and focused-window context
+- Top-center animated layer-shell notch.
+- Compact and expanded states with damped spring sizing.
+- Niri workspace and focused-window context.
 - mako notification interception:
-  - auto-open on new notification
-  - cache notification text/chip
-  - dismiss duplicate mako card after a short delay
-- playerctl media fallback
+  - auto-open on new notification,
+  - cache notification text/chip,
+  - dismiss duplicate mako card after a short delay.
+- playerctl media fallback.
 - Mouse interactions:
-  - hover opens
-  - left click clears notification or toggles media
-  - right click opens the user's Niri control center
-  - wheel up/down switches Niri workspaces
-- Waybar companion styling pattern: Waybar as left/right secondary status rails, notch as primary center surface
-- Testable state machine architecture:
-  - `src/core.rs`: pure reducer, no I/O
-  - `src/main.rs`: GTK UI, snapshot collection, effect runner
-  - `tests/`: reducer and CLI parser tests
+  - hover opens,
+  - left click clears notification or toggles media,
+  - right click opens the user's Niri control center,
+  - wheel up/down switches Niri workspaces.
+- Waybar companion styling pattern: Waybar as left/right secondary rails, notch as primary center surface.
+- Testable internals:
+  - `src/core.rs`: pure reducer, no I/O,
+  - `src/install.rs`: pure Niri config managed-block transforms,
+  - `src/main.rs`: GTK UI, snapshot collection, filesystem/process effects.
 
 ## CLI
 
 ```bash
 niri-notch-rs doctor
+niri-notch-rs doctor --json
 niri-notch-rs install --user --dry-run
+niri-notch-rs install --user
 niri-notch-rs uninstall --user --dry-run
+niri-notch-rs uninstall --user
 niri-notch-rs preview
 ```
 
-`doctor` checks the basic runtime environment:
+`doctor` checks:
 
 - `niri`
 - `gtk-layer-shell-0` via pkg-config
@@ -44,9 +52,11 @@ niri-notch-rs preview
 - Niri config validity
 - Niri layer query availability
 
+`install --user` writes an idempotent managed block to `~/.config/niri/config.kdl` and creates a timestamped backup before modifying the file.
+
 ## Build
 
-System dependencies on Arch/CachyOS-like systems:
+Arch/CachyOS dependencies:
 
 ```bash
 sudo pacman -S --needed rust gtk3 gtk-layer-shell pkgconf waybar mako playerctl
@@ -55,18 +65,26 @@ sudo pacman -S --needed rust gtk3 gtk-layer-shell pkgconf waybar mako playerctl
 Build and install locally:
 
 ```bash
-cargo build --release
+cargo build --release --locked
 install -Dm755 target/release/niri-notch-rs ~/.local/bin/niri-notch-rs
 ~/.local/bin/niri-notch-rs doctor
 ```
 
 ## Niri integration
 
-Add the daemon to `~/.config/niri/config.kdl` after Waybar:
+Manual config example:
 
 ```kdl
 spawn-sh-at-startup "waybar"
 spawn-sh-at-startup "~/.local/bin/niri-notch-rs"
+```
+
+Or let the CLI manage the `niri-notch-rs` block:
+
+```bash
+niri-notch-rs install --user --dry-run
+niri-notch-rs install --user
+niri validate -c ~/.config/niri/config.kdl
 ```
 
 Recommended Waybar setup:
@@ -79,13 +97,14 @@ Then style Waybar as companion rails rather than another strong center island.
 
 ## Quality gates
 
-Run before shipping:
+CI and release candidates run:
 
 ```bash
 cargo fmt -- --check
-cargo test
-cargo clippy --all-targets --all-features -- -D warnings
-cargo build --release
+cargo test --locked
+cargo clippy --locked --all-targets --all-features -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --locked --no-deps
+cargo build --release --locked
 ```
 
 ## Architecture
@@ -98,8 +117,25 @@ Event / snapshot / pointer input
   -> run Effect through a narrow effect runner
 ```
 
-The reducer is intentionally pure so behavior can be tested without GTK, Niri, mako, or playerctl.
+Install/config changes follow the same rule:
+
+```text
+Niri config text + InstallPlan
+  -> pure transform
+  -> backup + write in the effect layer
+```
+
+This keeps desktop behavior testable without GTK, Niri, mako, playerctl, or a live Wayland session.
+
+## Packaging
+
+An Arch packaging draft lives in:
+
+```text
+packaging/arch/PKGBUILD
+packaging/arch/.SRCINFO
+```
 
 ## Status
 
-Early daily-driver prototype. The local setup has been verified on CachyOS + Niri + Waybar at 1920x1080@180Hz, but public packaging/install automation is still in progress.
+Pre-1.0 daily-driver prototype. Verified locally on CachyOS + Niri + Waybar at 1920x1080@180Hz.

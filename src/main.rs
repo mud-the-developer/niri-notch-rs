@@ -3,11 +3,14 @@ use gtk::{Application, ApplicationWindow, Box as GtkBox, EventBox, Label, Orient
 use gtk_layer_shell::{Edge, Layer, LayerShell};
 use niri_notch_rs::cli::{CliCommand, doctor_probe_names, help_text, parse_cli};
 use niri_notch_rs::core::{AppEvent, AppState, Effect, UiMode, reduce};
+use niri_notch_rs::install::{InstallPlan, apply_install_block, apply_uninstall_block};
 use std::cell::{Cell, RefCell};
+use std::fs;
 use std::io::{self, Write};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const APP_ID: &str = "dev.mud.NiriNotch";
 const COMPACT_W: i32 = 138;
@@ -652,17 +655,14 @@ fn write_stderr(message: &str) {
 
 fn run_cli(command: &CliCommand) {
     match command {
-        CliCommand::Doctor => run_doctor(),
-        CliCommand::Install { user, dry_run } => {
-            write_stdout(&format!("install plan: user={user} dry_run={dry_run}\n"));
-            write_stdout("managed spawn: ~/.local/bin/niri-notch-rs\n");
-        }
-        CliCommand::Uninstall { user, dry_run } => {
-            write_stdout(&format!("uninstall plan: user={user} dry_run={dry_run}\n"));
-            write_stdout("remove managed spawn: ~/.local/bin/niri-notch-rs\n");
-        }
+        CliCommand::Doctor { json } => run_doctor(*json),
+        CliCommand::Install { user: _, dry_run } => run_install(*dry_run),
+        CliCommand::Uninstall { user: _, dry_run } => run_uninstall(*dry_run),
         CliCommand::Preview => {
-            write_stdout("preview: run with NIRI_NOTCH_OPEN=1 niri-notch-rs\n");
+            write_stdout(
+                "preview: run with NIRI_NOTCH_OPEN=1 niri-notch-rs
+",
+            );
         }
         CliCommand::Help => {
             write_stdout(help_text());
@@ -670,35 +670,163 @@ fn run_cli(command: &CliCommand) {
     }
 }
 
-fn run_doctor() {
-    write_stdout("niri-notch-rs doctor\n");
-    for probe in doctor_probe_names() {
-        let ok = match probe {
-            "niri" => command_exists("niri"),
-            "gtk-layer-shell-0" => pkg_config_exists("gtk-layer-shell-0"),
-            "waybar" => command_exists("waybar"),
-            "makoctl" => command_exists("makoctl"),
-            "playerctl" => command_exists("playerctl"),
-            "niri config" => Command::new("niri")
-                .args(["validate", "-c"])
-                .arg(expand_home("~/.config/niri/config.kdl"))
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .is_ok_and(|status| status.success()),
-            "niri layers" => Command::new("niri")
-                .args(["msg", "layers"])
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .is_ok_and(|status| status.success()),
-            _ => false,
-        };
+#[derive(Debug, Clone)]
+struct DoctorProbe {
+    name: &'static str,
+    ok: bool,
+}
+
+fn run_doctor(json_output: bool) {
+    let probes = collect_doctor_probes();
+    if json_output {
+        write_stdout(&doctor_json(&probes));
+        return;
+    }
+    write_stdout(
+        "niri-notch-rs doctor
+",
+    );
+    for probe in probes {
         write_stdout(&format!(
-            "{probe:<18} {}\n",
-            if ok { "ok" } else { "missing" }
+            "{:<18} {}
+",
+            probe.name,
+            if probe.ok { "ok" } else { "missing" }
         ));
     }
+}
+
+fn collect_doctor_probes() -> Vec<DoctorProbe> {
+    doctor_probe_names()
+        .into_iter()
+        .map(|name| DoctorProbe {
+            name,
+            ok: probe_ok(name),
+        })
+        .collect()
+}
+
+fn probe_ok(probe: &str) -> bool {
+    match probe {
+        "niri" => command_exists("niri"),
+        "gtk-layer-shell-0" => pkg_config_exists("gtk-layer-shell-0"),
+        "waybar" => command_exists("waybar"),
+        "makoctl" => command_exists("makoctl"),
+        "playerctl" => command_exists("playerctl"),
+        "niri config" => Command::new("niri")
+            .args(["validate", "-c"])
+            .arg(niri_config_path())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success()),
+        "niri layers" => Command::new("niri")
+            .args(["msg", "layers"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success()),
+        _ => false,
+    }
+}
+
+fn doctor_json(probes: &[DoctorProbe]) -> String {
+    let rows = probes
+        .iter()
+        .map(|probe| {
+            format!(
+                r#"{{"name":"{}","ok":{}}}"#,
+                json_escape(probe.name),
+                probe.ok
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(r#"{{"probes":[{rows}]}}"#) + "\n"
+}
+
+fn json_escape(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn run_install(dry_run: bool) {
+    let plan = InstallPlan::new("~/.local/bin/niri-notch-rs");
+    let path = niri_config_path();
+    let original = fs::read_to_string(&path).unwrap_or_default();
+    let updated = apply_install_block(&original, &plan);
+    if dry_run {
+        write_stdout(&format!(
+            "install dry-run: {}
+managed spawn: {}
+",
+            path.display(),
+            plan.binary
+        ));
+        return;
+    }
+    if let Err(error) = write_config_with_backup(&path, &updated) {
+        write_stderr(&format!(
+            "install failed: {error}
+"
+        ));
+        std::process::exit(1);
+    }
+    write_stdout(&format!(
+        "installed managed block into {}
+",
+        path.display()
+    ));
+}
+
+fn run_uninstall(dry_run: bool) {
+    let path = niri_config_path();
+    let original = fs::read_to_string(&path).unwrap_or_default();
+    let updated = apply_uninstall_block(&original);
+    if dry_run {
+        write_stdout(&format!(
+            "uninstall dry-run: {}
+",
+            path.display()
+        ));
+        return;
+    }
+    if let Err(error) = write_config_with_backup(&path, &updated) {
+        write_stderr(&format!(
+            "uninstall failed: {error}
+"
+        ));
+        std::process::exit(1);
+    }
+    write_stdout(&format!(
+        "removed managed block from {}
+",
+        path.display()
+    ));
+}
+
+fn write_config_with_backup(path: &std::path::Path, updated: &str) -> io::Result<()> {
+    let backup = backup_path(path);
+    if path.exists() {
+        fs::copy(path, &backup)?;
+    }
+    fs::write(path, updated)
+}
+
+fn backup_path(path: &std::path::Path) -> PathBuf {
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |duration| duration.as_secs());
+    let mut backup = path.to_path_buf();
+    let extension = format!("backup-{stamp}");
+    backup.set_extension(extension);
+    backup
+}
+
+fn niri_config_path() -> PathBuf {
+    std::env::var("NIRI_NOTCH_NIRI_CONFIG").map_or_else(
+        |_| PathBuf::from(expand_home("~/.config/niri/config.kdl")),
+        PathBuf::from,
+    )
 }
 
 fn command_exists(command: &str) -> bool {

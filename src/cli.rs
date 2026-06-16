@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliCommand {
-    Doctor,
+    Doctor { json: bool },
     Install { user: bool, dry_run: bool },
     Uninstall { user: bool, dry_run: bool },
     Preview,
@@ -26,13 +26,33 @@ where
     };
     let command = command.as_ref();
     match command {
-        "doctor" => Ok(Some(CliCommand::Doctor)),
+        "doctor" => parse_doctor_command(args),
         "preview" => Ok(Some(CliCommand::Preview)),
         "help" | "--help" | "-h" => Ok(Some(CliCommand::Help)),
         "install" => parse_scoped_command("install", args),
         "uninstall" => parse_scoped_command("uninstall", args),
         other => Err(CliError::UnknownCommand(other.into())),
     }
+}
+
+fn parse_doctor_command<I, S>(args: I) -> Result<Option<CliCommand>, CliError>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut json = false;
+    for arg in args {
+        match arg.as_ref() {
+            "--json" => json = true,
+            flag => {
+                return Err(CliError::UnsupportedFlag {
+                    command: "doctor".into(),
+                    flag: flag.into(),
+                });
+            }
+        }
+    }
+    Ok(Some(CliCommand::Doctor { json }))
 }
 
 fn parse_scoped_command<I, S>(command: &str, args: I) -> Result<Option<CliCommand>, CliError>
