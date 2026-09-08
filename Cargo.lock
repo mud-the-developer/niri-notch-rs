@@ -294,9 +294,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.22.7"
+version = "0.22.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c207e04e51605dcf7b2924c41591b3a10e1438eaac5bcf448fb91f325381104a"
+checksum = "18b9b8d350db41f690ec1b87109f202782748bbd8ab2f2ede17cb40d29e2838c"
 dependencies = [
  "bitflags",
  "futures-channel",
@@ -522,7 +522,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "gdk",
- "glib 0.22.7",
+ "glib 0.22.9",
  "gtk",
  "gtk-layer-shell",
  "serde",
